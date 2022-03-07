@@ -38,16 +38,12 @@ func main() {
 func getProductHandler(c *gin.Context) {
 	var product Product
 
-	if err := db.First(&product.ID, c.Params).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err,
-		})
+	if err := db.Where("id = ?", c.Param("id")).First(&product).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
 		return
-	}
+	  }
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": &product,
-	})
+	c.JSON(http.StatusOK, &product)
 }
 
 func getProductListHandler(c *gin.Context) {

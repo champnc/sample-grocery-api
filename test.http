@@ -1,4 +1,4 @@
-GET http://localhost:8080/grocery/3
+GET http://localhost:8080/grocery/1
 
 ###
 
