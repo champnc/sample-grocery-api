@@ -1,0 +1,16 @@
+GET http://localhost:8080/grocery/3
+
+###
+
+POST http://localhost:8080/grocery
+content-type: application/json
+
+{
+    "name" : "Test",
+    "code" : "A001",
+    "price" : 100
+}
+
+###
+
+GET http://localhost:8080/grocery
