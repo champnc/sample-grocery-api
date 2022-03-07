@@ -14,3 +14,7 @@ content-type: application/json
 ###
 
 GET http://localhost:8080/grocery
+
+###
+
+DELETE http://localhost:8080/grocery/2

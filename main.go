@@ -61,7 +61,13 @@ func getProductListHandler(c *gin.Context) {
 }
 
 func deleteProductHandler(c *gin.Context) {
+	var product Product
 
+	if result := db.Delete(&product, c.Params); result.Error != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 func createProductHandler(c *gin.Context) {
