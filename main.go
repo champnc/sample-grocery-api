@@ -5,40 +5,41 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"net/http"
+	model "github.com/champnc/sample-grocery-api/model"
 )
 
-type Product struct {
-	gorm.Model
-	Name  string
-	Code  string
-	Price uint
-}
-
-var db *gorm.DB
-
 func main() {
-	var err error
-	db, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
 
-	db.AutoMigrate(&Product{})
+	db.AutoMigrate(&model.Product{})
 
 	r := gin.Default()
+	handler := newHandler(db)
 
-	r.GET("/grocery/:id", getProductHandler)
-	r.GET("/grocery", getProductListHandler)
-	r.POST("/grocery", createProductHandler)
-	r.DELETE("/grocery/:id", deleteProductHandler)
+	r.GET("/grocery/:id", handler.getProductHandler)
+	r.GET("/grocery", handler.getProductListHandler)
+	r.POST("/grocery", handler.createProductHandler)
+	r.DELETE("/grocery/:id", handler.deleteProductHandler)
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
-func getProductHandler(c *gin.Context) {
-	var product Product
+type Handler struct {
+	db *gorm.DB
+}
 
-	if err := db.Where("id = ?", c.Param("id")).First(&product).Error; err != nil {
+func newHandler(db *gorm.DB) *Handler {
+	return &Handler{db}
+}
+
+func (h *Handler) getProductHandler(c *gin.Context) {
+	var product model.Product
+
+	if err := h.db.Where("id = ?", c.Param("id")).First(&product).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
 		return
 	  }
@@ -46,28 +47,28 @@ func getProductHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, &product)
 }
 
-func getProductListHandler(c *gin.Context) {
-	var product []Product
+func (h *Handler) getProductListHandler(c *gin.Context) {
+	var product []model.Product
 
-	if result := db.Find(&product); result.Error != nil {
+	if result := h.db.Find(&product); result.Error != nil {
 		return
 	}
 
 	c.JSON(http.StatusOK, &product)
 }
 
-func deleteProductHandler(c *gin.Context) {
-	var product Product
+func (h *Handler) deleteProductHandler(c *gin.Context) {
+	var product model.Product
 
-	if result := db.Delete(&product, c.Params); result.Error != nil {
+	if result := h.db.Delete(&product, c.Params); result.Error != nil {
 		return
 	}
 
 	c.Status(http.StatusNoContent)
 }
 
-func createProductHandler(c *gin.Context) {
-	var product Product
+func (h *Handler) createProductHandler(c *gin.Context) {
+	var product model.Product
 
 	if err := c.ShouldBindJSON(&product); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -76,7 +77,7 @@ func createProductHandler(c *gin.Context) {
 		return
 	}
 
-	if result := db.Create(&product); result.Error != nil {
+	if result := h.db.Create(&product); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": result.Error.Error(),
 		})

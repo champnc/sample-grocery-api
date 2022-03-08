@@ -1,7 +1,14 @@
+# query by id
 GET http://localhost:8080/grocery/1
 
 ###
 
+# query all
+GET http://localhost:8080/grocery
+
+###
+
+# create new product
 POST http://localhost:8080/grocery
 content-type: application/json
 
@@ -13,8 +20,5 @@ content-type: application/json
 
 ###
 
-GET http://localhost:8080/grocery
-
-###
-
+# delete by id
 DELETE http://localhost:8080/grocery/2
