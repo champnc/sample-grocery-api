@@ -1,11 +1,16 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	model "github.com/champnc/sample-grocery-api/model"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"net/http"
-	model "github.com/champnc/sample-grocery-api/model"
 )
 
 func main() {
@@ -20,10 +25,14 @@ func main() {
 	r := gin.Default()
 	handler := newHandler(db)
 
-	r.GET("/grocery/:id", handler.getProductHandler)
-	r.GET("/grocery", handler.getProductListHandler)
-	r.POST("/grocery", handler.createProductHandler)
-	r.DELETE("/grocery/:id", handler.deleteProductHandler)
+	r.POST("/login", loginHandler)
+
+	protected := r.Group("/", authorizationMiddleware)
+
+	protected.GET("/grocery/:id", handler.getProductHandler)
+	protected.GET("/grocery", handler.getProductListHandler)
+	protected.POST("/grocery", handler.createProductHandler)
+	protected.DELETE("/grocery/:id", handler.deleteProductHandler)
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
@@ -36,7 +45,33 @@ func newHandler(db *gorm.DB) *Handler {
 	return &Handler{db}
 }
 
+func loginHandler(c *gin.Context) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.StandardClaims{
+		ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	ss, err := token.SignedString([]byte("MySignature"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": ss,
+	})
+}
+
 func (h *Handler) getProductHandler(c *gin.Context) {
+	s := c.Request.Header.Get("Authorization")
+
+	token := strings.TrimPrefix(s, "Bearer ")
+
+	if err := validateToken(token); err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	var product model.Product
 
 	if err := h.db.Where("id = ?", c.Param("id")).First(&product).Error; err != nil {
@@ -85,4 +120,27 @@ func (h *Handler) createProductHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, &product)
+}
+
+func validateToken(token string) error {
+	_, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+
+		return []byte("MySignature"), nil
+	})
+
+	return err
+}
+
+func authorizationMiddleware(c *gin.Context) {
+	s := c.Request.Header.Get("Authorization")
+
+	token := strings.TrimPrefix(s, "Bearer ")
+
+	if err := validateToken(token); err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 }

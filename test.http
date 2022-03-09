@@ -1,16 +1,24 @@
+# login
+POST http://localhost:8080/login
+
+###
+
 # query by id
 GET http://localhost:8080/grocery/1
+Authorization: Bearer ACCESS_TOKEN
 
 ###
 
 # query all
 GET http://localhost:8080/grocery
+Authorization: Bearer ACCESS_TOKEN
 
 ###
 
 # create new product
 POST http://localhost:8080/grocery
 content-type: application/json
+Authorization: Bearer ACCESS_TOKEN
 
 {
     "name" : "Test",
@@ -22,3 +30,4 @@ content-type: application/json
 
 # delete by id
 DELETE http://localhost:8080/grocery/2
+Authorization: Bearer ACCESS_TOKEN
