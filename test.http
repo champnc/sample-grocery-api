@@ -31,3 +31,7 @@ Authorization: Bearer ACCESS_TOKEN
 # delete by id
 DELETE http://localhost:8080/grocery/2
 Authorization: Bearer ACCESS_TOKEN
+
+###
+
+GET http://localhost:8080/swagger/index.html

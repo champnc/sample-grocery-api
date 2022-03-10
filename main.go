@@ -11,9 +11,21 @@ import (
 	"github.com/golang-jwt/jwt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+
+	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/gin-swagger/swaggerFiles"
+	"github.com/champnc/sample-grocery-api/docs"
 )
 
 func main() {
+
+	docs.SwaggerInfo.Title = "Swagger Example API"
+	docs.SwaggerInfo.Description = "This is a sample server Petstore server."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "petstore.swagger.io"
+	docs.SwaggerInfo.BasePath = "/v2"
+	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 
 	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
@@ -33,6 +45,8 @@ func main() {
 	protected.GET("/grocery", handler.getProductListHandler)
 	protected.POST("/grocery", handler.createProductHandler)
 	protected.DELETE("/grocery/:id", handler.deleteProductHandler)
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
