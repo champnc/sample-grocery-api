@@ -15,17 +15,10 @@ import (
 
 	ginSwagger "github.com/swaggo/gin-swagger"
 	swaggerFiles "github.com/swaggo/gin-swagger/swaggerFiles"
-	"github.com/champnc/sample-grocery-api/docs"
+	_ "github.com/champnc/sample-grocery-api/docs"
 )
 
 func main() {
-
-	docs.SwaggerInfo.Title = "Swagger Example API"
-	docs.SwaggerInfo.Description = "This is a sample server Petstore server."
-	docs.SwaggerInfo.Version = "1.0"
-	docs.SwaggerInfo.Host = "petstore.swagger.io"
-	docs.SwaggerInfo.BasePath = "/v2"
-	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 
 	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
@@ -76,6 +69,14 @@ func loginHandler(c *gin.Context) {
 	})
 }
 
+// @Summary      Show a product
+// @Description  get product by ID
+// @Tags         product
+// @Produce      json
+// @Param        id   path      int  true  "product ID"
+// @Success      200  {object}  model.Product
+// @Failure      400  {string}  string ""
+// @Router       /grocery/{id} [get]
 func (h *Handler) getProductHandler(c *gin.Context) {
 	s := c.Request.Header.Get("Authorization")
 
