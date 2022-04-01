@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"golang.org/x/time/rate"
 
 	model "github.com/champnc/sample-grocery-api/model"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,11 @@ import (
 	_ "github.com/champnc/sample-grocery-api/docs"
 )
 
+var (
+	r = rate.Every(2 * time.Second)
+	lim = rate.NewLimiter(r ,1)
+)
+
 func main() {
 
 	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
@@ -28,7 +34,7 @@ func main() {
 	db.AutoMigrate(&model.Product{})
 
 	r := gin.Default()
-	handler := newHandler(db)
+	handler := newHandler(db,lim)
 
 	r.POST("/login", loginHandler)
 
@@ -46,10 +52,11 @@ func main() {
 
 type Handler struct {
 	db *gorm.DB
+	lim *rate.Limiter
 }
 
-func newHandler(db *gorm.DB) *Handler {
-	return &Handler{db}
+func newHandler(db *gorm.DB, lim *rate.Limiter) *Handler {
+	return &Handler{db,lim}
 }
 
 func loginHandler(c *gin.Context) {
@@ -82,6 +89,13 @@ func (h *Handler) getProductHandler(c *gin.Context) {
 
 	token := strings.TrimPrefix(s, "Bearer ")
 
+	if !h.lim.Allow() {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": "too many request",
+		})
+		return
+	}
+
 	if err := validateToken(token); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -100,6 +114,13 @@ func (h *Handler) getProductHandler(c *gin.Context) {
 func (h *Handler) getProductListHandler(c *gin.Context) {
 	var product []model.Product
 
+	if !h.lim.Allow() {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": "too many request",
+		})
+		return
+	}
+
 	if result := h.db.Find(&product); result.Error != nil {
 		return
 	}
@@ -110,6 +131,13 @@ func (h *Handler) getProductListHandler(c *gin.Context) {
 func (h *Handler) deleteProductHandler(c *gin.Context) {
 	var product model.Product
 
+	if !h.lim.Allow() {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": "too many request",
+		})
+		return
+	}
+
 	if result := h.db.Delete(&product, c.Params); result.Error != nil {
 		return
 	}
@@ -119,6 +147,13 @@ func (h *Handler) deleteProductHandler(c *gin.Context) {
 
 func (h *Handler) createProductHandler(c *gin.Context) {
 	var product model.Product
+
+	if !h.lim.Allow() {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": "too many request",
+		})
+		return
+	}
 
 	if err := c.ShouldBindJSON(&product); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
